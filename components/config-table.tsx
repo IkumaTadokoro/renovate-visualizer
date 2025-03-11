@@ -24,7 +24,6 @@ interface ConfigTableProps {
 
 export default function ConfigTable({ config, schema }: ConfigTableProps) {
   const [searchTerm, setSearchTerm] = useState("")
-  const [sortField, setSortField] = useState<keyof ConfigProperty>("key")
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
 
   // スキーマから説明文を取得する関数
@@ -69,10 +68,9 @@ export default function ConfigTable({ config, schema }: ConfigTableProps) {
       const aSegments = a.path.replace(/\[(\d+)\]/g, '.$1').split('.');
       const bSegments = b.path.replace(/\[(\d+)\]/g, '.$1').split('.');
       
-      // 最短の長さを取得
+      // セグメントごとに比較
       const minLength = Math.min(aSegments.length, bSegments.length);
       
-      // セグメントごとに比較
       for (let i = 0; i < minLength; i++) {
         const aSegment = aSegments[i];
         const bSegment = bSegments[i];
@@ -236,7 +234,16 @@ export default function ConfigTable({ config, schema }: ConfigTableProps) {
           <TableBody>
             {finalProperties.length > 0 ? (
               finalProperties.map((prop) => (
-                <TableRow key={prop.path} className={prop.level === 0 ? "bg-muted/30" : ""}>
+                <TableRow 
+                  key={prop.path} 
+                  className={
+                    prop.hierarchyNumber?.includes("-") 
+                      ? prop.hierarchyNumber?.split("-").length === 2
+                        ? "bg-muted/20"
+                        : "" 
+                      : "bg-muted/40 font-medium"
+                  }
+                >
                   <TableCell className="text-xs text-muted-foreground font-mono">
                     {prop.hierarchyNumber}
                   </TableCell>
@@ -250,12 +257,12 @@ export default function ConfigTable({ config, schema }: ConfigTableProps) {
                       <div>
                         <div 
                           className={`font-mono text-sm ${prop.level > 0 ? "" : "font-semibold"}`} 
-                          style={{ paddingLeft: `${prop.level * 4}px` }}
+                          style={{ paddingLeft: `${prop.level * 8}px` }}
                         >
                           {prop.key}
                         </div>
                         {prop.path !== prop.key && (
-                          <div className="text-xs text-muted-foreground" style={{ paddingLeft: `${prop.level * 4}px` }}>
+                          <div className="text-xs text-muted-foreground" style={{ paddingLeft: `${prop.level * 8}px` }}>
                             {prop.path}
                           </div>
                         )}
@@ -334,10 +341,19 @@ function extractProperties(obj: any, parentPath = "", parentHierarchy = "", leve
 
   // Handle objects
   // オブジェクトの各プロパティをエントリーとして追加
-  let propIndex = 1;
-  for (const [key, value] of Object.entries(obj)) {
-    const path = parentPath ? `${parentPath}.${key}` : key
-    const currentHierarchy = parentHierarchy ? `${parentHierarchy}-${propIndex}` : `${propIndex}`
+  // 最初にキーを収集してアルファベット順にソート
+  const sortedKeys = Object.keys(obj).sort();
+  
+  for (let index = 0; index < sortedKeys.length; index++) {
+    const key = sortedKeys[index];
+    const value = obj[key];
+    const path = parentPath ? `${parentPath}.${key}` : key;
+    
+    // 階層番号を生成
+    const propertyIndex = index + 1; // 1から始まるインデックス
+    const currentHierarchy = parentHierarchy 
+      ? `${parentHierarchy}-${propertyIndex}` 
+      : `${propertyIndex}`;
 
     if (typeof value === "object" && value !== null) {
       // Add the property itself
@@ -362,7 +378,6 @@ function extractProperties(obj: any, parentPath = "", parentHierarchy = "", leve
         level: level
       })
     }
-    propIndex++;
   }
 
   return result
