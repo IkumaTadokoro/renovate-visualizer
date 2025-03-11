@@ -259,19 +259,21 @@ export default function ConfigTable({ config, schema }: ConfigTableProps) {
                   <TableCell className="font-medium">
                     <div className="flex items-start">
                       {prop.level > 0 && (
-                        <div className="mr-1 mt-1">
+                        <div 
+                          className="mr-1 mt-1"
+                          style={{ paddingLeft: `${(prop.level - 1) * 12}px` }}
+                        >
                           <CornerDownRight size={14} className="text-muted-foreground" />
                         </div>
                       )}
-                      <div>
+                      <div className="min-w-[150px]">
                         <div 
                           className={`font-mono text-sm ${prop.level > 0 ? "" : "font-semibold"}`} 
-                          style={{ paddingLeft: `${prop.level * 8}px` }}
                         >
                           {prop.key}
                         </div>
                         {prop.path !== prop.key && (
-                          <div className="text-xs text-muted-foreground" style={{ paddingLeft: `${prop.level * 8}px` }}>
+                          <div className="text-xs text-muted-foreground">
                             {prop.path}
                           </div>
                         )}
