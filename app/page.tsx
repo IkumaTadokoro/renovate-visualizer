@@ -68,53 +68,6 @@ export default function Home() {
     }
   }
 
-  const loadJson5Example = () => {
-    setJsonInput(json5Example)
-    try {
-      const parsedJson = JSON5.parse(json5Example)
-      setSchema(parsedJson)
-    } catch (err) {
-      setError("Failed to parse JSON5 example")
-    }
-  }
-
-  const loadRenovateConfigExample = () => {
-    setJsonInput(renovateConfigExample)
-    try {
-      const parsedJson = JSON5.parse(renovateConfigExample)
-      setSchema(parsedJson)
-      setMode("json5")
-    } catch (err) {
-      setError("Failed to parse Renovate config example")
-    }
-  }
-
-  const loadSampleRenovateConfig = () => {
-    setMode("json5")
-    setLoading(true)
-    try {
-      fetch('/api/load-file?file=renovate-json5-sample.json5')
-        .then(response => response.text())
-        .then(text => {
-          setJsonInput(text)
-          try {
-            const parsedJson = JSON5.parse(text)
-            setSchema(parsedJson)
-          } catch (parseErr) {
-            setError(`Failed to parse Renovate JSON5 sample: ${(parseErr as Error).message}`)
-          }
-          setLoading(false)
-        })
-        .catch(fetchErr => {
-          setError(`Failed to load Renovate JSON5 sample: ${(fetchErr as Error).message}`)
-          setLoading(false)
-        })
-    } catch (err) {
-      setError(`Failed to access Renovate JSON5 sample: ${(err as Error).message}`)
-      setLoading(false)
-    }
-  }
-
   const loadRenovateSchema = async () => {
     setMode("json")
     setLoading(true)
@@ -174,15 +127,6 @@ export default function Home() {
             ) : (
               "Load Sample Schema"
             )}
-          </Button>
-          <Button variant="outline" onClick={loadJson5Example}>
-            Load JSON5 Example
-          </Button>
-          <Button variant="outline" onClick={loadRenovateConfigExample}>
-            Load Config Example
-          </Button>
-          <Button variant="outline" onClick={loadSampleRenovateConfig}>
-            Load Renovate JSON5 Sample
           </Button>
           <Button variant="outline" onClick={loadRenovateSchema}>
             Load Renovate Schema
