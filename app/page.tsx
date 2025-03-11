@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Resizable } from "re-resizable"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
@@ -11,12 +11,14 @@ import CodeEditor from "@/components/code-editor"
 import JSON5 from "json5"
 import { json5Example } from "@/lib/json5-examples"
 import ConfigTable from "@/components/config-table"
-// Add this import
 import { renovateConfigExample } from "@/lib/json5-examples"
 
-// Add this function before the Home component
-function isJsonSchema(obj: any): boolean {
-  // Check for common JSON Schema properties
+function isJsonSchema(obj: Record<string, any>): boolean {
+  if (obj && typeof obj === "object" && obj.$schema && typeof obj.$schema === "string" && 
+      obj.$schema.includes("renovate-schema.json")) {
+    return false;
+  }
+  
   return (
     obj &&
     typeof obj === "object" &&
@@ -31,8 +33,8 @@ export default function Home() {
   const [loading, setLoading] = useState(false)
   const [copied, setCopied] = useState(false)
   const [mode, setMode] = useState<"json" | "json5">("json5")
+  const [renovateSchema, setRenovateSchema] = useState<any>(null)
 
-  // Replace the handleJsonChange function with this updated version
   const handleJsonChange = (value: string) => {
     setJsonInput(value)
     setError(null)
@@ -50,8 +52,6 @@ export default function Home() {
     }
   }
 
-  // Add this function to detect if the parsed JSON is a schema or a configuration
-
   const fetchSampleSchema = async () => {
     setLoading(true)
     try {
@@ -60,14 +60,14 @@ export default function Home() {
       const formatted = JSON.stringify(data, null, 2)
       setJsonInput(formatted)
       setSchema(data)
+      setRenovateSchema(data)
     } catch (err) {
-      setError("Failed to fetch sample schema")
+      setError(`Failed to fetch sample schema: ${(err as Error).message}`)
     } finally {
       setLoading(false)
     }
   }
 
-  // Add a function to load the JSON5 example
   const loadJson5Example = () => {
     setJsonInput(json5Example)
     try {
@@ -78,15 +78,67 @@ export default function Home() {
     }
   }
 
-  // Add this function after loadJson5Example
   const loadRenovateConfigExample = () => {
     setJsonInput(renovateConfigExample)
     try {
       const parsedJson = JSON5.parse(renovateConfigExample)
       setSchema(parsedJson)
-      setMode("json5") // Make sure we're in JSON5 mode
+      setMode("json5")
     } catch (err) {
       setError("Failed to parse Renovate config example")
+    }
+  }
+
+  const loadSampleRenovateConfig = () => {
+    setMode("json5")
+    setLoading(true)
+    try {
+      fetch('/api/load-file?file=renovate-json5-sample.json5')
+        .then(response => response.text())
+        .then(text => {
+          setJsonInput(text)
+          try {
+            const parsedJson = JSON5.parse(text)
+            setSchema(parsedJson)
+          } catch (parseErr) {
+            setError(`Failed to parse Renovate JSON5 sample: ${(parseErr as Error).message}`)
+          }
+          setLoading(false)
+        })
+        .catch(fetchErr => {
+          setError(`Failed to load Renovate JSON5 sample: ${(fetchErr as Error).message}`)
+          setLoading(false)
+        })
+    } catch (err) {
+      setError(`Failed to access Renovate JSON5 sample: ${(err as Error).message}`)
+      setLoading(false)
+    }
+  }
+
+  const loadRenovateSchema = async () => {
+    setMode("json")
+    setLoading(true)
+    try {
+      fetch('/api/load-file?file=renovate-json-schema.json')
+        .then(response => response.text())
+        .then(text => {
+          setJsonInput(text)
+          try {
+            const parsedJson = JSON.parse(text)
+            setSchema(parsedJson)
+            setRenovateSchema(parsedJson)
+          } catch (parseErr) {
+            setError(`Failed to parse Renovate schema: ${(parseErr as Error).message}`)
+          }
+          setLoading(false)
+        })
+        .catch(fetchErr => {
+          setError(`Failed to load Renovate schema: ${(fetchErr as Error).message}`)
+          setLoading(false)
+        })
+    } catch (err) {
+      setError(`Failed to access Renovate schema: ${(err as Error).message}`)
+      setLoading(false)
     }
   }
 
@@ -96,10 +148,18 @@ export default function Home() {
     setTimeout(() => setCopied(false), 2000)
   }
 
+  useEffect(() => {
+    const loadInitialData = async () => {
+      await loadRenovateSchema();
+    };
+    
+    loadInitialData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <main className="flex flex-col min-h-screen p-4 md:p-6">
       <div className="flex flex-col gap-4 mb-6">
-        {/* Update the title and description */}
         <h1 className="text-3xl font-bold">JSON/JSON5 Schema Visualizer</h1>
         <p className="text-muted-foreground">
           Paste your JSON or JSON5 schema on the left and see the visualization on the right.
@@ -112,16 +172,20 @@ export default function Home() {
                 Loading...
               </>
             ) : (
-              "Load Renovate Schema Example"
+              "Load Sample Schema"
             )}
           </Button>
-          {/* Add a button to load the JSON5 example */}
           <Button variant="outline" onClick={loadJson5Example}>
             Load JSON5 Example
           </Button>
-          {/* Add this button after the "Load JSON5 Example" button */}
           <Button variant="outline" onClick={loadRenovateConfigExample}>
-            Load Renovate Config Example
+            Load Config Example
+          </Button>
+          <Button variant="outline" onClick={loadSampleRenovateConfig}>
+            Load Renovate JSON5 Sample
+          </Button>
+          <Button variant="outline" onClick={loadRenovateSchema}>
+            Load Renovate Schema
           </Button>
           <Button variant="outline" onClick={copyToClipboard} disabled={!jsonInput}>
             {copied ? (
@@ -207,7 +271,7 @@ export default function Home() {
                   </>
                 ) : (
                   <TabsContent value="config" className="mt-0">
-                    <ConfigTable config={schema} />
+                    <ConfigTable config={schema} schema={renovateSchema} />
                   </TabsContent>
                 )}
               </Tabs>

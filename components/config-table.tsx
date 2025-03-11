@@ -12,22 +12,56 @@ interface ConfigProperty {
   path: string
   value: any
   type: string
+  description?: string
 }
 
 interface ConfigTableProps {
   config: any
+  schema?: any
 }
 
-export default function ConfigTable({ config }: ConfigTableProps) {
+export default function ConfigTable({ config, schema }: ConfigTableProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [sortField, setSortField] = useState<keyof ConfigProperty>("key")
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
 
+  // スキーマから説明文を取得する関数
+  const getDescriptionFromSchema = (propPath: string): string => {
+    if (!schema || !schema.properties) return "";
+    
+    const pathParts = propPath.split(".");
+    const rootProp = pathParts[0];
+    
+    // ルートプロパティの説明を検索
+    if (schema.properties[rootProp]) {
+      if (pathParts.length === 1) {
+        return schema.properties[rootProp].description || "";
+      }
+      
+      // ネストされたプロパティの場合、再帰的に説明を検索
+      // 注: このロジックはrenovateのスキーマ構造に依存しています
+      if (schema.properties[rootProp].properties) {
+        const nestedProp = pathParts[1];
+        if (schema.properties[rootProp].properties[nestedProp]) {
+          return schema.properties[rootProp].properties[nestedProp].description || "";
+        }
+      }
+    }
+    
+    return "";
+  };
+
   // Extract properties from config
   const properties = extractProperties(config)
+  
+  // プロパティに説明を追加
+  const propertiesWithDescriptions = properties.map(prop => ({
+    ...prop,
+    description: getDescriptionFromSchema(prop.path)
+  }));
 
   // Filter properties based on search term
-  const filteredProperties = properties.filter((prop) => {
+  const filteredProperties = propertiesWithDescriptions.filter((prop) => {
     if (!searchTerm) return true
 
     const lowerSearchTerm = searchTerm.toLowerCase()
@@ -35,7 +69,8 @@ export default function ConfigTable({ config }: ConfigTableProps) {
       prop.key.toLowerCase().includes(lowerSearchTerm) ||
       prop.path.toLowerCase().includes(lowerSearchTerm) ||
       String(prop.value).toLowerCase().includes(lowerSearchTerm) ||
-      prop.type.toLowerCase().includes(lowerSearchTerm)
+      prop.type.toLowerCase().includes(lowerSearchTerm) ||
+      prop.description.toLowerCase().includes(lowerSearchTerm)
     )
   })
 
@@ -179,6 +214,9 @@ export default function ConfigTable({ config }: ConfigTableProps) {
                     (sortDirection === "asc" ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />)}
                 </button>
               </TableHead>
+              <TableHead>
+                <span>Description</span>
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -197,11 +235,14 @@ export default function ConfigTable({ config }: ConfigTableProps) {
                     </Badge>
                   </TableCell>
                   <TableCell>{formatValue(prop.value)}</TableCell>
+                  <TableCell>
+                    {prop.description && <div className="text-sm text-muted-foreground">{prop.description}</div>}
+                  </TableCell>
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={3} className="h-24 text-center">
+                <TableCell colSpan={4} className="h-24 text-center">
                   No properties found.
                 </TableCell>
               </TableRow>

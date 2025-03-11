@@ -1,0 +1,31 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:base",
+    ":timezone(Asia/Tokyo)",
+    ":prHourlyLimitNone",
+    ":automergePatch"
+  ],
+  "schedule": ["after 9am on monday", "before 12am on monday"],
+  "dependencyDashboard": true,
+  "ignorePaths": [
+    "src/i_want_to_ignore/*",
+    "Dockerfile",
+    "docker-compose.yml",
+  ],
+  "pip_requirements": {
+    "fileMatch": [
+      "src/i_want_to_check/requirements_dev.txt",
+      "src/mee_too/requirements_dev.txt"
+    ]
+  },
+  "packageRules": [
+      {
+          "groupName": "boto3",
+          "matchPackagePatterns": [
+              "boto3",
+              "botocore"
+          ]
+      }
+  ]
+}
