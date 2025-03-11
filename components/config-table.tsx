@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ChevronDown, ChevronUp, Search, X } from "lucide-react"
+import { ChevronDown, ChevronUp, Search, X, CornerDownRight } from "lucide-react"
 
 interface ConfigProperty {
   key: string
@@ -13,6 +13,8 @@ interface ConfigProperty {
   value: any
   type: string
   description?: string
+  hierarchyNumber?: string
+  level: number
 }
 
 interface ConfigTableProps {
@@ -106,7 +108,7 @@ export default function ConfigTable({ config, schema }: ConfigTableProps) {
       prop.path.toLowerCase().includes(lowerSearchTerm) ||
       String(prop.value).toLowerCase().includes(lowerSearchTerm) ||
       prop.type.toLowerCase().includes(lowerSearchTerm) ||
-      prop.description.toLowerCase().includes(lowerSearchTerm)
+      (prop.description?.toLowerCase() || "").includes(lowerSearchTerm)
     )
   })
 
@@ -211,6 +213,9 @@ export default function ConfigTable({ config, schema }: ConfigTableProps) {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-[60px]">
+                <span>#</span>
+              </TableHead>
               <TableHead className="w-[200px]">
                 <button type="button" className="flex items-center space-x-1" onClick={handleSort}>
                   <span>Property</span>
@@ -231,11 +236,30 @@ export default function ConfigTable({ config, schema }: ConfigTableProps) {
           <TableBody>
             {finalProperties.length > 0 ? (
               finalProperties.map((prop) => (
-                <TableRow key={prop.path}>
+                <TableRow key={prop.path} className={prop.level === 0 ? "bg-muted/30" : ""}>
+                  <TableCell className="text-xs text-muted-foreground font-mono">
+                    {prop.hierarchyNumber}
+                  </TableCell>
                   <TableCell className="font-medium">
-                    <div>
-                      <div className="font-mono text-sm">{prop.key}</div>
-                      {prop.path !== prop.key && <div className="text-xs text-muted-foreground">{prop.path}</div>}
+                    <div className="flex items-start">
+                      {prop.level > 0 && (
+                        <div className="mr-1 mt-1">
+                          <CornerDownRight size={14} className="text-muted-foreground" />
+                        </div>
+                      )}
+                      <div>
+                        <div 
+                          className={`font-mono text-sm ${prop.level > 0 ? "" : "font-semibold"}`} 
+                          style={{ paddingLeft: `${prop.level * 4}px` }}
+                        >
+                          {prop.key}
+                        </div>
+                        {prop.path !== prop.key && (
+                          <div className="text-xs text-muted-foreground" style={{ paddingLeft: `${prop.level * 4}px` }}>
+                            {prop.path}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -251,7 +275,7 @@ export default function ConfigTable({ config, schema }: ConfigTableProps) {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={4} className="h-24 text-center">
+                <TableCell colSpan={5} className="h-24 text-center">
                   No properties found.
                 </TableCell>
               </TableRow>
@@ -264,7 +288,7 @@ export default function ConfigTable({ config, schema }: ConfigTableProps) {
 }
 
 // Helper function to extract properties from config
-function extractProperties(obj: any, parentPath = ""): ConfigProperty[] {
+function extractProperties(obj: any, parentPath = "", parentHierarchy = "", level = 0): ConfigProperty[] {
   const result: ConfigProperty[] = []
 
   if (!obj || typeof obj !== "object") {
@@ -279,6 +303,7 @@ function extractProperties(obj: any, parentPath = ""): ConfigProperty[] {
       const item = obj[index];
       const path = parentPath ? `${parentPath}[${index}]` : `[${index}]`
       const key = `[${index}]`
+      const currentHierarchy = parentHierarchy ? `${parentHierarchy}-${index + 1}` : `${index + 1}`
 
       if (typeof item === "object" && item !== null) {
         // Add the array item itself
@@ -287,16 +312,20 @@ function extractProperties(obj: any, parentPath = ""): ConfigProperty[] {
           path,
           value: item,
           type: Array.isArray(item) ? "array" : "object",
+          hierarchyNumber: currentHierarchy,
+          level: level
         })
 
         // Add nested properties
-        result.push(...extractProperties(item, path))
+        result.push(...extractProperties(item, path, currentHierarchy, level + 1))
       } else {
         result.push({
           key,
           path,
           value: item,
           type: typeof item,
+          hierarchyNumber: currentHierarchy,
+          level: level
         })
       }
     }
@@ -305,8 +334,10 @@ function extractProperties(obj: any, parentPath = ""): ConfigProperty[] {
 
   // Handle objects
   // オブジェクトの各プロパティをエントリーとして追加
+  let propIndex = 1;
   for (const [key, value] of Object.entries(obj)) {
     const path = parentPath ? `${parentPath}.${key}` : key
+    const currentHierarchy = parentHierarchy ? `${parentHierarchy}-${propIndex}` : `${propIndex}`
 
     if (typeof value === "object" && value !== null) {
       // Add the property itself
@@ -315,18 +346,23 @@ function extractProperties(obj: any, parentPath = ""): ConfigProperty[] {
         path,
         value,
         type: Array.isArray(value) ? "array" : "object",
+        hierarchyNumber: currentHierarchy,
+        level: level
       })
 
       // Add nested properties
-      result.push(...extractProperties(value, path))
+      result.push(...extractProperties(value, path, currentHierarchy, level + 1))
     } else {
       result.push({
         key,
         path,
         value,
         type: typeof value,
+        hierarchyNumber: currentHierarchy,
+        level: level
       })
     }
+    propIndex++;
   }
 
   return result
