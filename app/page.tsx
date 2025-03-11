@@ -1,17 +1,14 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Resizable } from "re-resizable"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
-import { Loader2, Copy, Check } from "lucide-react"
+import { Loader2, Copy, Check, PanelLeftClose, PanelLeftOpen } from "lucide-react"
 import SchemaVisualizer from "@/components/schema-visualizer"
 import SchemaTable from "@/components/schema-table"
 import CodeEditor from "@/components/code-editor"
 import JSON5 from "json5"
-import { json5Example } from "@/lib/json5-examples"
 import ConfigTable from "@/components/config-table"
-import { renovateConfigExample } from "@/lib/json5-examples"
 
 function isJsonSchema(obj: Record<string, any>): boolean {
   if (obj && typeof obj === "object" && obj.$schema && typeof obj.$schema === "string" && 
@@ -34,6 +31,7 @@ export default function Home() {
   const [copied, setCopied] = useState(false)
   const [mode, setMode] = useState<"json" | "json5">("json5")
   const [renovateSchema, setRenovateSchema] = useState<any>(null)
+  const [isEditorOpen, setIsEditorOpen] = useState(true)
 
   const handleJsonChange = (value: string) => {
     setJsonInput(value)
@@ -164,26 +162,41 @@ export default function Home() {
       </div>
 
       <div className="flex flex-col lg:flex-row gap-4 h-[calc(100vh-200px)]">
-        <Resizable
-          defaultSize={{ width: "50%", height: "100%" }}
-          minWidth="30%"
-          maxWidth="70%"
-          enable={{ right: true }}
-          className="border rounded-lg overflow-hidden"
+        <div 
+          className={`
+            transition-all duration-300 ease-in-out overflow-hidden
+            ${isEditorOpen ? 'lg:w-[40%] w-full' : 'lg:w-0 w-0'}
+          `}
         >
-          <div className="h-full flex flex-col">
-            <div className="bg-muted p-2 border-b">
-              <h2 className="font-medium">JSON Schema Input</h2>
-            </div>
-            <div className="flex-1 overflow-auto">
-              <CodeEditor value={jsonInput} onChange={handleJsonChange} language={mode} />
+          <div className={`border rounded-lg overflow-hidden h-full ${!isEditorOpen && 'opacity-0'}`}>
+            <div className="h-full flex flex-col">
+              <div className="bg-muted p-2 border-b">
+                <h2 className="font-medium">JSON Schema Input</h2>
+              </div>
+              <div className="flex-1 overflow-auto">
+                <CodeEditor value={jsonInput} onChange={handleJsonChange} language={mode} />
+              </div>
             </div>
           </div>
-        </Resizable>
+        </div>
 
-        <div className="flex-1 border rounded-lg overflow-hidden flex flex-col">
-          <div className="bg-muted p-2 border-b">
+        <div 
+          className={`
+            flex-1 border rounded-lg overflow-hidden flex flex-col 
+            transition-all duration-300 ease-in-out
+          `}
+        >
+          <div className="bg-muted p-2 border-b flex justify-between items-center">
             <h2 className="font-medium">Visualization</h2>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => setIsEditorOpen(!isEditorOpen)}
+              className="h-8 px-2"
+            >
+              {isEditorOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
+              <span className="ml-2 text-xs">{isEditorOpen ? "エディタを閉じる" : "エディタを開く"}</span>
+            </Button>
           </div>
           <div className="flex-1 overflow-auto p-4">
             {error ? (
@@ -201,6 +214,7 @@ export default function Home() {
                     <TabsTrigger value="config">Config View</TabsTrigger>
                   )}
                 </TabsList>
+
                 {isJsonSchema(schema) ? (
                   <>
                     <TabsContent value="table" className="mt-0">
