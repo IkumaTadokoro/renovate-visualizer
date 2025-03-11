@@ -184,114 +184,121 @@ export default function ConfigTable({ config, schema }: ConfigTableProps) {
     <div className="space-y-4">
       <div className="flex items-center space-x-2">
         <div className="relative flex-1">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-2 top-2.5 h-4 w-4 text-zinc-400" />
           <Input
             placeholder="Search properties..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-8"
+            className="pl-8 bg-zinc-800 border-zinc-700 text-zinc-200"
           />
           {searchTerm && (
             <Button
               variant="ghost"
               size="sm"
-              className="absolute right-1 top-1.5 h-7 w-7 p-0"
+              className="absolute right-1 top-1.5 h-7 w-7 p-0 text-zinc-400 hover:text-blue-400 hover:bg-zinc-700"
               onClick={() => setSearchTerm("")}
             >
               <X className="h-4 w-4" />
             </Button>
           )}
         </div>
-        <div className="text-sm text-muted-foreground">
+        <div className="text-sm text-zinc-400">
           {filteredProperties.length} of {properties.length} properties
         </div>
       </div>
 
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[220px]">
-                <button type="button" className="flex items-center space-x-1" onClick={handleSort}>
+      <div className="rounded-md border border-zinc-700 overflow-hidden">
+        <Table className="border-collapse relative">
+          <TableHeader className="bg-zinc-800 sticky top-0 z-20">
+            <TableRow className="border-b-zinc-700">
+              <TableHead className="w-[220px] text-zinc-300">
+                <button type="button" className="flex items-center space-x-1 hover:text-blue-400" onClick={handleSort}>
                   <span>Property</span>
                   {sortDirection === "asc" ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                 </button>
               </TableHead>
-              <TableHead className="w-[100px]">
+              <TableHead className="w-[100px] text-zinc-300">
                 <span>Type</span>
               </TableHead>
-              <TableHead>
+              <TableHead className="text-zinc-300">
                 <span>Value</span>
               </TableHead>
-              <TableHead>
+              <TableHead className="text-zinc-300">
                 <span>Description</span>
               </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {finalProperties.length > 0 ? (
-              finalProperties.map((prop) => (
-                <TableRow 
-                  key={prop.path} 
-                  className={
-                    prop.hierarchyNumber?.includes("-") 
-                      ? prop.hierarchyNumber?.split("-").length === 2
-                        ? "bg-muted/20"
-                        : "" 
-                      : "bg-muted/40 font-medium"
-                  }
-                >
-                  <TableCell className="font-medium">
-                    <div className="flex items-start">
-                      {prop.level > 0 && (
-                        <div 
-                          className="mr-1 mt-1"
-                          style={{ paddingLeft: `${(prop.level - 1) * 12}px` }}
-                        >
-                          <CornerDownRight size={14} className="text-muted-foreground" />
-                        </div>
-                      )}
-                      <div className="min-w-[150px]">
-                        <div 
-                          className={`font-mono text-sm ${prop.level > 0 ? "" : "font-semibold"}`} 
-                        >
-                          {prop.key}
-                        </div>
-                        {prop.path !== prop.key && (
-                          <div className="text-xs text-muted-foreground">
-                            {prop.path}
+              finalProperties.map((prop) => {
+                // 親要素かどうかを判定
+                const isParent = prop.level === 0;
+                
+                return (
+                  <TableRow 
+                    key={prop.path} 
+                    className={`
+                      hover:bg-zinc-800/50 transition-colors
+                      ${prop.hierarchyNumber?.includes("-") 
+                        ? prop.hierarchyNumber?.split("-").length === 2
+                          ? "bg-zinc-800/30 border-b border-zinc-800" 
+                          : "border-b border-zinc-800" 
+                        : "bg-zinc-800/70 font-medium border-b border-zinc-800"
+                      }
+                      ${isParent ? "sticky top-[39px] z-10" : ""}
+                    `}
+                  >
+                    <TableCell className="font-medium text-zinc-300">
+                      <div className="flex items-start">
+                        {prop.level > 0 && (
+                          <div 
+                            className="mr-1 mt-1"
+                            style={{ paddingLeft: `${(prop.level - 1) * 12}px` }}
+                          >
+                            <CornerDownRight size={14} className="text-zinc-500" />
                           </div>
                         )}
+                        <div className="min-w-[150px]">
+                          <div 
+                            className={`font-mono text-sm ${prop.level > 0 ? "text-zinc-300" : "font-semibold text-blue-400"}`} 
+                          >
+                            {prop.key}
+                          </div>
+                          {prop.path !== prop.key && (
+                            <div className="text-xs text-zinc-500">
+                              {prop.path}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="secondary" className="font-mono">
-                      {prop.type}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {/* ObjectやArrayを内包している親は値を表示しない 
-                      それ以外のプロパティタイプの場合は値を表示する */}
-                    {(prop.type !== "object" && prop.type !== "array") && formatValue(prop.value)}
-                  </TableCell>
-                  <TableCell className="relative">
-                    {prop.description && <div className="text-sm text-muted-foreground">{prop.description}</div>}
-                    {/* 階層番号を右下に配置 */}
-                    {prop.hierarchyNumber && (
-                      <div 
-                        className="absolute bottom-0.5 right-2 text-muted-foreground/20 font-mono font-bold"
-                        style={{ fontSize: '16px' }}
-                      >
-                        {prop.hierarchyNumber}
-                      </div>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className="font-mono bg-zinc-800 text-zinc-300 hover:bg-zinc-700">
+                        {prop.type}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-zinc-300">
+                      {/* Only show values for non-container types */}
+                      {(prop.type !== "object" && prop.type !== "array") && formatValue(prop.value)}
+                    </TableCell>
+                    <TableCell className="relative text-zinc-400">
+                      {prop.description && <div className="text-sm">{prop.description}</div>}
+                      {/* Position hierarchy number at bottom right */}
+                      {prop.hierarchyNumber && (
+                        <div 
+                          className="absolute bottom-0.5 right-2 text-zinc-400/40 font-mono font-bold"
+                          style={{ fontSize: '16px' }}
+                        >
+                          {prop.hierarchyNumber}
+                        </div>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             ) : (
               <TableRow>
-                <TableCell colSpan={4} className="h-24 text-center">
+                <TableCell colSpan={4} className="h-24 text-center text-zinc-500">
                   No properties found.
                 </TableCell>
               </TableRow>

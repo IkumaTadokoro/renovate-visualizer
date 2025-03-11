@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { PanelLeftClose, PanelLeftOpen } from "lucide-react"
+import { PanelLeftClose, PanelLeftOpen, Microscope } from "lucide-react"
 import CodeEditor from "@/components/code-editor"
 import JSON5 from "json5"
 import ConfigTable from "@/components/config-table"
@@ -41,7 +41,7 @@ export default function Home() {
         setConfig(null)
       }
     } catch (err) {
-      setError(`解析エラー: ${(err as Error).message}`)
+      setError(`Parse Error: ${(err as Error).message}`)
       setConfig(null)
     }
   }
@@ -55,7 +55,7 @@ export default function Home() {
         const parsedJson = JSON.parse(text);
         setRenovateSchema(parsedJson);
       } catch (err) {
-        console.error('スキーマの読み込みに失敗しました:', err);
+        console.error('Failed to load schema:', err);
         // ユーザーにはエラーを表示しない（説明なしでも機能する）
       }
     };
@@ -64,11 +64,14 @@ export default function Home() {
   }, []);
 
   return (
-    <main className="flex flex-col min-h-screen p-4 md:p-6">
+    <main className="flex flex-col min-h-screen p-4 md:p-6 bg-zinc-900 text-zinc-100">
       <div className="flex flex-col gap-4 mb-6">
-        <h1 className="text-3xl font-bold">Renovate Visualizer</h1>
-        <p className="text-muted-foreground">
-          Renovate設定ファイルを貼り付けて視覚化します。JSON/JSON5形式を自動検出します。
+        <div className="flex items-center gap-2">
+          <Microscope className="h-8 w-8 text-blue-500" />
+          <h1 className="text-3xl font-bold">Renovate Visualizer</h1>
+        </div>
+        <p className="text-zinc-400">
+          Visualize your Renovate configuration files with automatic JSON/JSON5 format detection.
         </p>
       </div>
 
@@ -79,12 +82,12 @@ export default function Home() {
             ${isEditorOpen ? 'lg:w-[40%] w-full' : 'lg:w-0 w-0'}
           `}
         >
-          <div className={`border rounded-lg overflow-hidden h-full ${!isEditorOpen && 'opacity-0'}`}>
+          <div className={`border border-zinc-700 rounded-lg overflow-hidden h-full ${!isEditorOpen && 'opacity-0'}`}>
             <div className="h-full flex flex-col">
-              <div className="bg-muted p-2 border-b">
-                <h2 className="font-medium">JSON/JSON5 入力</h2>
+              <div className="bg-zinc-800 p-2 border-b border-zinc-700">
+                <h2 className="font-medium">JSON/JSON5 Input</h2>
               </div>
-              <div className="flex-1 overflow-auto">
+              <div className="flex-1 overflow-auto bg-zinc-900">
                 <CodeEditor value={jsonInput} onChange={handleJsonChange} language="json5" />
               </div>
             </div>
@@ -93,30 +96,30 @@ export default function Home() {
 
         <div 
           className={`
-            flex-1 border rounded-lg overflow-hidden flex flex-col 
-            transition-all duration-300 ease-in-out
+            flex-1 border border-zinc-700 rounded-lg overflow-hidden flex flex-col 
+            transition-all duration-300 ease-in-out bg-zinc-800
           `}
         >
-          <div className="bg-muted p-2 border-b flex justify-between items-center">
-            <h2 className="font-medium">可視化結果</h2>
+          <div className="bg-zinc-800 p-2 border-b border-zinc-700 flex justify-between items-center">
+            <h2 className="font-medium">Visualization</h2>
             <Button 
               variant="ghost" 
               size="sm"
               onClick={() => setIsEditorOpen(!isEditorOpen)}
-              className="h-8 px-2"
+              className="h-8 px-2 text-zinc-200 hover:text-blue-400 hover:bg-zinc-700"
             >
               {isEditorOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
-              <span className="ml-2 text-xs">{isEditorOpen ? "エディタを閉じる" : "エディタを開く"}</span>
+              <span className="ml-2 text-xs">{isEditorOpen ? "Hide Editor" : "Show Editor"}</span>
             </Button>
           </div>
-          <div className="flex-1 overflow-auto p-4">
+          <div className="flex-1 overflow-auto p-4 bg-zinc-900">
             {error ? (
-              <div className="p-4 bg-red-50 text-red-500 rounded-md">{error}</div>
+              <div className="p-4 bg-red-900/20 text-red-400 border border-red-800 rounded-md">{error}</div>
             ) : config ? (
               <ConfigTable config={config} schema={renovateSchema} />
             ) : (
-              <div className="flex items-center justify-center h-full text-muted-foreground">
-                JSONまたはJSON5形式のRenovate設定を入力してください
+              <div className="flex items-center justify-center h-full text-zinc-500">
+                Paste a Renovate configuration in JSON or JSON5 format to visualize
               </div>
             )}
           </div>
@@ -125,4 +128,5 @@ export default function Home() {
     </main>
   )
 }
+
 
