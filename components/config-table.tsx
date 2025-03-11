@@ -180,6 +180,15 @@ export default function ConfigTable({ config, schema }: ConfigTableProps) {
     return <span>{String(value)}</span>
   }
 
+  // Helper function to check if a value is a container (Object or Array)
+  const isContainer = (value: any): boolean => {
+    return (
+      typeof value === "object" && 
+      value !== null && 
+      (Array.isArray(value) || Object.keys(value).length > 0)
+    );
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center space-x-2">
@@ -211,10 +220,10 @@ export default function ConfigTable({ config, schema }: ConfigTableProps) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[60px]">
+              <TableHead className="w-[80px] text-left">
                 <span>#</span>
               </TableHead>
-              <TableHead className="w-[200px]">
+              <TableHead className="w-[220px]">
                 <button type="button" className="flex items-center space-x-1" onClick={handleSort}>
                   <span>Property</span>
                   {sortDirection === "asc" ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
@@ -244,7 +253,7 @@ export default function ConfigTable({ config, schema }: ConfigTableProps) {
                       : "bg-muted/40 font-medium"
                   }
                 >
-                  <TableCell className="text-xs text-muted-foreground font-mono">
+                  <TableCell className="text-xs text-muted-foreground font-mono text-left w-[90px]">
                     {prop.hierarchyNumber}
                   </TableCell>
                   <TableCell className="font-medium">
@@ -274,7 +283,11 @@ export default function ConfigTable({ config, schema }: ConfigTableProps) {
                       {prop.type}
                     </Badge>
                   </TableCell>
-                  <TableCell>{formatValue(prop.value)}</TableCell>
+                  <TableCell>
+                    {/* ObjectやArrayを内包している親は値を表示しない 
+                      それ以外のプロパティタイプの場合は値を表示する */}
+                    {(prop.type !== "object" && prop.type !== "array") && formatValue(prop.value)}
+                  </TableCell>
                   <TableCell>
                     {prop.description && <div className="text-sm text-muted-foreground">{prop.description}</div>}
                   </TableCell>
