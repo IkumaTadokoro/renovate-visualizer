@@ -79,7 +79,7 @@ export default function CodeEditor({ value, onChange, language = "json" }: CodeE
     return () => {
       view.destroy()
     }
-  }, [language])
+  }, [language, onChange, value])
 
   // Update editor content when value prop changes
   useEffect(() => {

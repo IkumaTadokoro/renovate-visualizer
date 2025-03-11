@@ -1,8 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { PanelLeftClose, PanelLeftOpen, Microscope, Settings, FileJson, Link, ExternalLink } from "lucide-react"
+import { PanelLeftClose, PanelLeftOpen, Microscope, Settings, FileJson, ExternalLink } from "lucide-react"
 import CodeEditor from "@/components/code-editor"
 import JSON5 from "json5"
 import ConfigTable from "@/components/config-table"

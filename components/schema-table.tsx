@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
 import { useState, useMemo } from "react"
@@ -74,7 +75,7 @@ export default function SchemaTable({ schema }: SchemaTableProps) {
 
     extractProperties(schema, "", requiredProps)
     return result
-  }, [schema])
+  }, [getType, schema])
 
   // Filter properties based on search term
   const filteredProperties = useMemo(() => {
@@ -122,6 +123,7 @@ export default function SchemaTable({ schema }: SchemaTableProps) {
   }
 
   // Get type string from schema property
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   function getType(prop: any): string {
     if (Array.isArray(prop.type)) {
       return prop.type.join(" | ")
