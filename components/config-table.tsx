@@ -60,8 +60,44 @@ export default function ConfigTable({ config, schema }: ConfigTableProps) {
     description: getDescriptionFromSchema(prop.path)
   }));
 
+  // パスに基づいて適切にソートするヘルパー関数
+  const sortByPropertyPath = (props: ConfigProperty[]): ConfigProperty[] => {
+    return [...props].sort((a, b) => {
+      // パスをセグメントに分割する
+      const aSegments = a.path.replace(/\[(\d+)\]/g, '.$1').split('.');
+      const bSegments = b.path.replace(/\[(\d+)\]/g, '.$1').split('.');
+      
+      // 最短の長さを取得
+      const minLength = Math.min(aSegments.length, bSegments.length);
+      
+      // セグメントごとに比較
+      for (let i = 0; i < minLength; i++) {
+        const aSegment = aSegments[i];
+        const bSegment = bSegments[i];
+        
+        // 数値インデックスの場合は数値として比較
+        if (/^\d+$/.test(aSegment) && /^\d+$/.test(bSegment)) {
+          const aNum = Number.parseInt(aSegment, 10);
+          const bNum = Number.parseInt(bSegment, 10);
+          if (aNum !== bNum) {
+            return aNum - bNum;
+          }
+        } else if (aSegment !== bSegment) {
+          // 文字列の場合は辞書順で比較
+          return aSegment.localeCompare(bSegment);
+        }
+      }
+      
+      // すべてのセグメントが一致する場合は短いパスを優先
+      return aSegments.length - bSegments.length;
+    });
+  };
+
+  // まずパスでソートした結果を取得
+  const sortedByPath = sortByPropertyPath(propertiesWithDescriptions);
+
   // Filter properties based on search term
-  const filteredProperties = propertiesWithDescriptions.filter((prop) => {
+  const filteredProperties = sortedByPath.filter((prop) => {
     if (!searchTerm) return true
 
     const lowerSearchTerm = searchTerm.toLowerCase()
@@ -74,30 +110,12 @@ export default function ConfigTable({ config, schema }: ConfigTableProps) {
     )
   })
 
-  // Sort properties
-  const sortedProperties = [...filteredProperties].sort((a, b) => {
-    let aValue = a[sortField]
-    let bValue = b[sortField]
+  // ソート方向に基づいて結果を反転（必要な場合）
+  const finalProperties = sortDirection === "asc" ? filteredProperties : [...filteredProperties].reverse();
 
-    // Handle special cases for sorting
-    if (sortField === "value") {
-      aValue = typeof aValue === "object" ? JSON.stringify(aValue) : String(aValue)
-      bValue = typeof bValue === "object" ? JSON.stringify(bValue) : String(bValue)
-    }
-
-    if (aValue < bValue) return sortDirection === "asc" ? -1 : 1
-    if (aValue > bValue) return sortDirection === "asc" ? 1 : -1
-    return 0
-  })
-
-  // Handle sort
-  const handleSort = (field: keyof ConfigProperty) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === "asc" ? "desc" : "asc")
-    } else {
-      setSortField(field)
-      setSortDirection("asc")
-    }
+  // Handle sort - パスベースのソートを維持しつつ、表示順序のみ反転
+  const handleSort = () => {
+    setSortDirection(sortDirection === "asc" ? "desc" : "asc")
   }
 
   // Format value for display
@@ -194,25 +212,16 @@ export default function ConfigTable({ config, schema }: ConfigTableProps) {
           <TableHeader>
             <TableRow>
               <TableHead className="w-[200px]">
-                <button className="flex items-center space-x-1" onClick={() => handleSort("key")}>
+                <button type="button" className="flex items-center space-x-1" onClick={handleSort}>
                   <span>Property</span>
-                  {sortField === "key" &&
-                    (sortDirection === "asc" ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />)}
+                  {sortDirection === "asc" ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                 </button>
               </TableHead>
               <TableHead className="w-[100px]">
-                <button className="flex items-center space-x-1" onClick={() => handleSort("type")}>
-                  <span>Type</span>
-                  {sortField === "type" &&
-                    (sortDirection === "asc" ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />)}
-                </button>
+                <span>Type</span>
               </TableHead>
               <TableHead>
-                <button className="flex items-center space-x-1" onClick={() => handleSort("value")}>
-                  <span>Value</span>
-                  {sortField === "value" &&
-                    (sortDirection === "asc" ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />)}
-                </button>
+                <span>Value</span>
               </TableHead>
               <TableHead>
                 <span>Description</span>
@@ -220,8 +229,8 @@ export default function ConfigTable({ config, schema }: ConfigTableProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {sortedProperties.length > 0 ? (
-              sortedProperties.map((prop) => (
+            {finalProperties.length > 0 ? (
+              finalProperties.map((prop) => (
                 <TableRow key={prop.path}>
                   <TableCell className="font-medium">
                     <div>
@@ -264,7 +273,10 @@ function extractProperties(obj: any, parentPath = ""): ConfigProperty[] {
 
   // Handle arrays
   if (Array.isArray(obj)) {
-    obj.forEach((item, index) => {
+    // まず配列自体を追加
+    // それから各要素を順番に追加する（それぞれのインデックスごとにまとめる）
+    for (let index = 0; index < obj.length; index++) {
+      const item = obj[index];
       const path = parentPath ? `${parentPath}[${index}]` : `[${index}]`
       const key = `[${index}]`
 
@@ -287,12 +299,13 @@ function extractProperties(obj: any, parentPath = ""): ConfigProperty[] {
           type: typeof item,
         })
       }
-    })
+    }
     return result
   }
 
   // Handle objects
-  Object.entries(obj).forEach(([key, value]) => {
+  // オブジェクトの各プロパティをエントリーとして追加
+  for (const [key, value] of Object.entries(obj)) {
     const path = parentPath ? `${parentPath}.${key}` : key
 
     if (typeof value === "object" && value !== null) {
@@ -314,7 +327,7 @@ function extractProperties(obj: any, parentPath = ""): ConfigProperty[] {
         type: typeof value,
       })
     }
-  })
+  }
 
   return result
 }
